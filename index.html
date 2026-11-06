@@ -336,24 +336,24 @@ function updateUI(){
 }
 
 /* voice commander + text commands */
-function pickThaiVoice(){
-  const vs = speechSynthesis.getVoices();
-  return vs.find(v => v.lang === 'th-TH') || vs.find(v => v.lang.startsWith('th')) || null;
-}
-function speak(text){
-  if(!('speechSynthesis' in window)) return;
-  const spoken = text
-    .replace(/PIPOOH/gi, 'พิพูห์')
-    .replace(/B\.U\.S\.?/g, 'พี่บัส');
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(spoken);
-  u.lang = 'th-TH';
-  const v = pickThaiVoice();
-  if(v) u.voice = v;
-  u.rate = 1;
-  u.pitch = 1.1;
-  speechSynthesis.speak(u);
-}
+  function pickEnglishVoice(){
+    const vs = speechSynthesis.getVoices();
+    return vs.find(v => v.lang === 'en-US' && /Natural|Google|Samantha|Ava|Aria|Jenny/i.test(v.name))
+        || vs.find(v => v.lang.startsWith('en-US'))
+        || vs.find(v => v.lang.startsWith('en'))
+        || null;
+  }
+  function speak(text){
+    if(!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    const v = pickEnglishVoice();
+    if(v) u.voice = v;
+    u.rate = 1;
+    u.pitch = 1.05;
+    speechSynthesis.speak(u);
+  }
 function showReply(html){const r=$('reply');r.innerHTML=html;r.classList.add('show');}
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function setVol(delta){
@@ -407,7 +407,7 @@ function toggleMic(){
   if(listening){ rec&&rec.stop(); return; }
   ensureAudio();
   rec=new SR();
-  rec.lang='th-TH';rec.continuous=false;rec.interimResults=false;
+  rec.lang='en-US';rec.continuous=false;rec.interimResults=false;
   rec.onstart=()=>{listening=true;$('mic').classList.add('listening');$('status').textContent='กำลังฟังอยู่ครับ พูดได้เลย...';};
   rec.onresult=e=>handleCommand(e.results[0][0].transcript);
   rec.onerror=()=>{$('status').textContent='ฟังไม่ชัด ลองแตะไมค์แล้วพูดอีกทีนะครับ';};
