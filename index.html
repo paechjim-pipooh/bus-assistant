@@ -336,24 +336,52 @@ function updateUI(){
 }
 
 /* voice commander + text commands */
-  function pickEnglishVoice(){
-    const vs = speechSynthesis.getVoices();
-    return vs.find(v => v.lang === 'en-US' && /Natural|Google|Samantha|Ava|Aria|Jenny/i.test(v.name))
-        || vs.find(v => v.lang.startsWith('en-US'))
-        || vs.find(v => v.lang.startsWith('en'))
-        || null;
+  // เสียงที่ต้องการ (ผู้ชาย) ถ้าเครื่องไม่มี ระบบจะใช้ตัวสำรองตามลำดับ
+const PREFERRED_VOICES = [
+  'Microsoft Mark - English (United States)',
+  'Microsoft Guy Online (Natural) - English (United States)',
+  'Microsoft David',
+  'Google UK English Male',
+  'Daniel',
+  'Google US English'
+];
+const VOICE_KEY = 'bus_voice_name_v3';
+
+function pickEnglishVoice(){
+  const vs = speechSynthesis.getVoices();
+  if(!vs.length) return null;
+
+  const saved = localStorage.getItem(VOICE_KEY);
+  if(saved){
+    const found = vs.find(v => v.name === saved);
+    if(found) return found;
   }
-  function speak(text){
-    if(!('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    const v = pickEnglishVoice();
-    if(v) u.voice = v;
-    u.rate = 1;
-    u.pitch = 1.05;
-    speechSynthesis.speak(u);
+
+  let chosen = null;
+  for(const name of PREFERRED_VOICES){
+    chosen = vs.find(v => v.name === name || v.name.startsWith(name + ' ('));
+    if(chosen) break;
   }
+  if(!chosen) chosen = vs.find(v => v.lang === 'en-US') || vs.find(v => v.lang.startsWith('en'));
+  if(chosen) localStorage.setItem(VOICE_KEY, chosen.name);
+  return chosen;
+}
+
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  const v = pickEnglishVoice();
+  if(v) u.voice = v;
+  u.rate = 1;
+  u.pitch = 1.05;
+  speechSynthesis.speak(u);
+}
+
+if('speechSynthesis' in window){
+  speechSynthesis.onvoiceschanged = () => pickEnglishVoice();
+}
 function showReply(html){const r=$('reply');r.innerHTML=html;r.classList.add('show');}
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function setVol(delta){
