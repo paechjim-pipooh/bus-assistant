@@ -366,11 +366,29 @@ function handleCommand(raw){
   else if(/กี่โมง|เวลา/.test(t)) ans=`ตอนนี้เวลา ${$('clock').textContent} น. ครับ`;
   else if(/วันอะไร|วันที่/.test(t)) ans=`วันนี้วัน${thDays[now.getDay()]} ที่ ${now.getDate()} ${thMonths[now.getMonth()]} ${now.getFullYear()+543} ครับ`;
   else if(/สวัสดี|หวัดดี/.test(t)) ans='สวัสดีครับ น้อง PIPOOH! พี่ B.U.S. พร้อมช่วยเสมอครับ';
-  else ans='ขอโทษครับ B.U.S. ยังทำคำสั่งนี้ไม่ได้ ลองสั่งว่า เล่นเพลง, เพลงถัดไป, เสียงดังขึ้น หรือถามเวลาได้นะครับ';
+  else { askAI(text); return; }
   showReply(`<strong>น้อง PIPOOH:</strong> ${escapeHtml(text)}<br><strong>B.U.S.:</strong> ${ans}`);
   speak(ans);
 }
-
+const chatHistory = [];
+async function askAI(text){
+  showReply(`<strong>น้อง PIPOOH:</strong> ${escapeHtml(text)}<br><strong>B.U.S.:</strong> กำลังคิดคำตอบ...`);
+  try{
+    const res = await fetch('/.netlify/functions/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ message: text, history: chatHistory })
+    });
+    const data = await res.json();
+    const ans = data.reply || 'ขอโทษครับ ตอนนี้ตอบไม่ได้';
+    chatHistory.push({ role: 'user', content: text }, { role: 'assistant', content: ans });
+    if (chatHistory.length > 20) chatHistory.splice(0, chatHistory.length - 20);
+    showReply(`<strong>น้อง PIPOOH:</strong> ${escapeHtml(text)}<br><strong>B.U.S.:</strong> ${escapeHtml(ans)}`);
+    speak(ans);
+  }catch(e){
+    showReply(`<strong>B.U.S.:</strong> เชื่อมต่อไม่ได้ครับ ลองใหม่อีกครั้งนะ`);
+  }
+}
 let rec=null,listening=false;
 function toggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
