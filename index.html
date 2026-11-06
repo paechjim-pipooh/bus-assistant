@@ -366,16 +366,16 @@ function pickEnglishVoice(){
   if(chosen) localStorage.setItem(VOICE_KEY, chosen.name);
   return chosen;
 }
-
+  
 function speak(text){
   if(!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US';
-  const v = pickEnglishVoice();
-  if(v) u.voice = v;
-  u.rate = 1;
-  u.pitch = 1.05;
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';
+  const v=pickEnglishVoice(); if(v) u.voice=v;
+  u.rate=1; u.pitch=1.05;
+  u.onstart=()=>{$('status').textContent='B.U.S. is speaking... tap the mic to stop';};
+  u.onend=u.onerror=()=>{ if(!listening) $('status').textContent=IDLE; };
   speechSynthesis.speak(u);
 }
 
@@ -390,7 +390,7 @@ function setVol(delta){
   return `ระดับเสียง ${el.value} ครับ`;
 }
 function handleCommand(raw){
-  const text=(raw||'').trim();
+  const text=(raw||'').trim().slice(0,300);
   if(!text) return;
   $('q').value='';
   const t=text.replace(/\s+/g,'');
@@ -411,35 +411,52 @@ function handleCommand(raw){
 }
 const chatHistory = [];
 async function askAI(text){
-  showReply(`<strong>น้อง PIPOOH:</strong> ${escapeHtml(text)}<br><strong>B.U.S.:</strong> กำลังคิดคำตอบ...`);
+  $('status').textContent='B.U.S. is thinking...';
+  showReply(`<strong>PIPOOH:</strong> ${escapeHtml(text)}<br><strong>B.U.S.:</strong> ...`);
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),20000);
+  let ans;
   try{
-    const res = await fetch('/.netlify/functions/chat', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ message: text, history: chatHistory })
+    const res=await fetch('/.netlify/functions/chat',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({message:text,history:chatHistory}),
+      signal:ctrl.signal
     });
-    const data = await res.json();
-    const ans = data.reply || 'ขอโทษครับ ตอนนี้ตอบไม่ได้';
-    chatHistory.push({ role: 'user', content: text }, { role: 'assistant', content: ans });
-    if (chatHistory.length > 20) chatHistory.splice(0, chatHistory.length - 20);
-    showReply(`<strong>น้อง PIPOOH:</strong> ${escapeHtml(text)}<br><strong>B.U.S.:</strong> ${escapeHtml(ans)}`);
-    speak(ans);
+    const data=await res.json();
+    ans=data.reply||'Sorry PIPOOH, B.U.S. is taking a little break. Please try again!';
+    chatHistory.push({role:'user',content:text},{role:'assistant',content:ans});
+    if(chatHistory.length>20) chatHistory.splice(0,chatHistory.length-20);
   }catch(e){
-    showReply(`<strong>B.U.S.:</strong> เชื่อมต่อไม่ได้ครับ ลองใหม่อีกครั้งนะ`);
+    ans='Sorry PIPOOH, B.U.S. is taking a little break. Please try again in a moment!';
+  }finally{
+    clearTimeout(timer);
   }
+  showReply(`<strong>PIPOOH:</strong> ${escapeHtml(text)}<br><strong>B.U.S.:</strong> ${escapeHtml(ans)}`);
+  speak(ans);
+}  
 }
 let rec=null,listening=false;
 function toggleMic(){
+  if(speechSynthesis.speaking){
+    speechSynthesis.cancel();
+    $('status').textContent=IDLE;
+    return;
+  }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){ $('status').textContent='เบราว์เซอร์นี้ไม่รองรับการฟังเสียง ใช้ช่องพิมพ์แทนได้ครับ'; return; }
+  if(!SR){ $('status').textContent='This browser cannot listen. Please type below.'; return; }
   if(listening){ rec&&rec.stop(); return; }
   ensureAudio();
   rec=new SR();
-  rec.lang='en-US';rec.continuous=false;rec.interimResults=false;
-  rec.onstart=()=>{listening=true;$('mic').classList.add('listening');$('status').textContent='กำลังฟังอยู่ครับ พูดได้เลย...';};
+  rec.lang='en-US'; rec.continuous=false; rec.interimResults=false;
+  rec.onstart=()=>{ listening=true; $('mic').classList.add('listening'); $('status').textContent='Listening... go ahead!'; };
   rec.onresult=e=>handleCommand(e.results[0][0].transcript);
-  rec.onerror=()=>{$('status').textContent='ฟังไม่ชัด ลองแตะไมค์แล้วพูดอีกทีนะครับ';};
-  rec.onend=()=>{listening=false;$('mic').classList.remove('listening');if($('status').textContent.startsWith('กำลังฟัง'))$('status').textContent='แตะไมค์แล้วพูดคำสั่งได้เลยครับ';};
+  rec.onerror=()=>{ $('status').textContent='I did not catch that. Tap the mic and try again.'; };
+  rec.onend=()=>{
+    listening=false;
+    $('mic').classList.remove('listening');
+    if($('status').textContent.startsWith('Listening')) $('status').textContent=IDLE;
+  };
   rec.start();
 }
 
