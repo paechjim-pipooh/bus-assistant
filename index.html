@@ -342,8 +342,11 @@ function pickThaiVoice(){
 }
 function speak(text){
   if(!('speechSynthesis' in window)) return;
+  const spoken = text
+    .replace(/PIPOOH/gi, 'พีพูห์')
+    .replace(/B\.U\.S\.?/g, 'บี ยู เอส');
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
+  const u = new SpeechSynthesisUtterance(spoken);
   u.lang = 'th-TH';
   const v = pickThaiVoice();
   if(v) u.voice = v;
