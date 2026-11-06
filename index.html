@@ -336,11 +336,19 @@ function updateUI(){
 }
 
 /* voice commander + text commands */
+function pickThaiVoice(){
+  const vs = speechSynthesis.getVoices();
+  return vs.find(v => v.lang === 'th-TH') || vs.find(v => v.lang.startsWith('th')) || null;
+}
 function speak(text){
   if(!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang='th-TH';u.rate=1;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'th-TH';
+  const v = pickThaiVoice();
+  if(v) u.voice = v;
+  u.rate = 1;
+  u.pitch = 1.1;
   speechSynthesis.speak(u);
 }
 function showReply(html){const r=$('reply');r.innerHTML=html;r.classList.add('show');}
