@@ -376,7 +376,7 @@ function handleCommand(raw){
   else if(/เสียงเบาลง|ลดเสียง|เบาลง/.test(t)) ans=setVol(-10);
   else if(/กี่โมง|เวลา/.test(t)) ans=`ตอนนี้เวลา ${$('clock').textContent} น. ครับ`;
   else if(/วันอะไร|วันที่/.test(t)) ans=`วันนี้วัน${thDays[now.getDay()]} ที่ ${now.getDate()} ${thMonths[now.getMonth()]} ${now.getFullYear()+543} ครับ`;
-  else if(/สวัสดี|หวัดดี/.test(t)) ans='สวัสดีครับ น้อง PIPOOH! พี่ B.U.S. พร้อมช่วยเสมอครับ';
+  else if(/สวัสดี|หวัดดี/.test(t)) ans='สวัสดีครับ น้อง พิภูข์! มีอะไรให้พี่บัสช่วยครับ';
   else { askAI(text); return; }
   showReply(`<strong>น้อง PIPOOH:</strong> ${escapeHtml(text)}<br><strong>B.U.S.:</strong> ${ans}`);
   speak(ans);
